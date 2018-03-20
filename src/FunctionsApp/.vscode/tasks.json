@@ -5,12 +5,27 @@
       "label": "Run Functions Host",
       "identifier": "runFunctionsHost",
       "type": "shell",
-      "command": "func host start",
+      "command": "func host start --script-root bin/Debug/netstandard2.0/",
       "isBackground": true,
       "presentation": {
         "reveal": "always"
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "dependsOn": [
+        "buildFunctionApp"
+      ]
+    },
+    {
+      "label": "Build FunctionApp",
+      "identifier": "buildFunctionApp",
+      "type": "shell",
+      "command": "dotnet build",
+      "isBackground": false,
+      "problemMatcher":"$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     }
   ]
 }
