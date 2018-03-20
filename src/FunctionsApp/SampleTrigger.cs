@@ -1,14 +1,32 @@
+using System;
 using System.Net;
 using System.IO;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Extensions.Configuration;
+
 using Newtonsoft.Json;
+
+using CSharpLib;
+using FSharpLib;
 
 namespace FunctionsApp {
     public static class SampleTrigger {
+        private static Science _science;
+
+        static SampleTrigger() {
+            var builder = new ConfigurationBuilder()
+                .AddEnvironmentVariables();
+            
+            var configuration = builder.Build();
+
+            _science = new Science(configuration.GetValue<int>("YIELD_SCIENCE"));
+        }
+
         [FunctionName("SampleTrigger")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route="sample")]HttpRequest req,
@@ -16,15 +34,11 @@ namespace FunctionsApp {
         {
             log.Info("C# HTTP trigger function processed a request.");
 
-            string name = req.Query["name"];
+            var report = Report.Report(_science.Yield);
 
-            string requestBody = new StreamReader(req.Body).ReadToEnd();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+            var response = new { ScienceReport = report, TimeStamp = DateTime.Now};
 
-            return name != null
-                ? (ActionResult)new OkObjectResult($"Hello, {name}")
-                : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+            return new OkObjectResult(response);
         }
 
     }
