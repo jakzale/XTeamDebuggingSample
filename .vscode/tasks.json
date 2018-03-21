@@ -12,7 +12,7 @@
       },
       "problemMatcher": [],
       "dependsOn": [
-        "build"
+        // "build"
       ],
       "options": {
         "cwd": "${workspaceFolder}/src/FunctionsApp/bin/Debug/netstandard2.0"
