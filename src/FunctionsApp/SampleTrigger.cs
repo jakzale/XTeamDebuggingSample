@@ -50,7 +50,13 @@ namespace FunctionsApp {
         {
             log.Info("C# HTTP trigger function processed a request.");
 
-            var report = Report.Report(_science.Yield);
+            string report;
+
+            if (_science.Yield > 0) {
+                report = Report.Report(_science.Yield);
+            } else {
+                report = "No Science Yield!";
+            }
 
             var response = new { ScienceReport = report, TimeStamp = DateTime.Now};
 
