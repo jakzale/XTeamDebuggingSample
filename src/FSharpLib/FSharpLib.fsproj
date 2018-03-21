@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- FIX 3: Fix FSharp.Core to match version in Azure Functions Runtime -->
     <FSharpCoreImplicitPackageVersion>4.1.*</FSharpCoreImplicitPackageVersion>
   </PropertyGroup>
 
