@@ -18,14 +18,30 @@ namespace FunctionsApp {
     public static class SampleTrigger {
         private static Science _science;
 
+
+        // static SampleTrigger() {
+        //     var builder = new ConfigurationBuilder()
+        //         .AddEnvironmentVariables();
+            
+        //     var configuration = builder.Build();
+
+        //     var yield = configuration.GetValue<int>("YIELD_SCIENCE");
+
+        //     _science = new Science(yield);
+        // }
+
+        // FIX 1: Make lack of configuartion a hard failure
         static SampleTrigger() {
             var builder = new ConfigurationBuilder()
                 .AddEnvironmentVariables();
             
             var configuration = builder.Build();
 
-            _science = new Science(configuration.GetValue<int>("YIELD_SCIENCE"));
+            var yield = configuration.GetValue<int?>("YIELD_SCIENCE") ?? throw new InvalidOperationException("Missing configuration for YIELD_SCIENCE");
+
+            _science = new Science(yield);
         }
+
 
         [FunctionName("SampleTrigger")]
         public static IActionResult Run(
