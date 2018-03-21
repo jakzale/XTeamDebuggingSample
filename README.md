@@ -1,9 +1,11 @@
 # XTeam Debugging Sample
 
-I was debugging an Azure Functions Application.  The sample provided was
-simplified to better illustrate the problem and the debugging process involved.
-The provided code may seem a bit contrived, as I couldn't provide the original
-code, as it was written for my employer.
+This sample shows my debugging process using an Azure Functions application as
+an example.  The code may seem contrived, as it is based on a bug I debugged for
+my employer some time ago and I wasn't able to include the original code.
+
+The code was vastly simplified to better illustrate the problem and the
+debugging process involved.
 
 ## Requirements
 
@@ -14,7 +16,7 @@ code, as it was written for my employer.
 
 ## Problem
 
-I was debugging an Azure Functions Application that was calling external
+I was debugging an Azure Functions application that was calling external
 libraries written in C# and F#.  The unit tests were passing successfuly for
 each of the external libraries, but the integration tests for the function app
 were failing.
@@ -24,7 +26,7 @@ the following:
 
 ```json
 {
-    "scienceReport":"Our current science yeild is 10",
+    "scienceReport":"Our current science yield is 10",
     "timeStamp":"2018-03-21T13:39:48.809166+00:00"
 }
 ```
@@ -32,8 +34,8 @@ the following:
 where `scienceReport` is a string that is influenced by configuration of the
 server, and `timeStamp` is the current time stamp.
 
-For simplicity, I ommited the integration tests and I will be testing the azure
-function using `curl`.
+For simplicity, I ommited the unit tests and the integration tests and I will be
+testing the Azure Function locally using `curl`.
 
 ## Step 1: Reproduce the problem
 
@@ -41,7 +43,7 @@ After checking out the code we need to reproduce the problem locally.
 
 In a real-life scenario we would use `azure-function-core-tools` to download the
 configuration from the affected Function App deployment and place them in
-`local.settings.json`.  However, for simplicity I already provided
+`local.settings.json`.  For simplicity, I already provided
 `local.settings.json` that contains the necessary configuraiton to get started.
 
 Now we build and start the function app
@@ -86,7 +88,7 @@ $ curl localhost:7071/api/sample
 The `GET` request send to the `/api/sample` endpoint returned a JSON object with
 an incorrect value for the `scienceReport` key.  After reading the code for
 `SampleTrigger` function, we find the following code for constructing the
-response (SampleTrigger.cs:55-65):
+response (`SampleTrigger.cs:55-65`):
 
 ``` csharp
 string report;
@@ -102,7 +104,7 @@ var response = new { ScienceReport = report, TimeStamp = DateTime.Now};
 return new OkObjectResult(response);
 ```
 
-and we are able to locate the code that initialises `_science` (SampleTrigger.cs:22-31):
+and we are able to locate the code that initialises `_science` (`SampleTrigger.cs:22-31`):
 
 ``` csharp
 static SampleTrigger() {
@@ -121,20 +123,26 @@ Given that, we have two potential culprits:
 - either there is a bug in the implementation of the `Science` class, or
 - there is a bug in the configuration.
 
-Since we already noted that the unit tests for external libraries were passing, which should include the unit tests for the `Science` class, therefore we will investigate the configuration first.
+Since we already noted that the unit tests for external libraries were passing,
+which should include the unit tests for the `Science` class, therefore we will
+investigate the configuration first.
 
 ## Step 3: Debugging
-We set up a breakpoint on the line 30 of SampleTrigger.cs, and since the code in
-question is in the static constructor of the `SampleTrigger` class, we restart
-the function host before attaching the debugger.  The static constructor for the
-`SampleTrigger` class will be executed the first time we make a request to the
-`api/sample` endpoint.
+We set up a breakpoint on the following statement on the line 30 of `SampleTrigger.cs`:
+``` csharp
+_science = new Science(yield);
+```
+Since the code in question is in the static constructor of the `SampleTrigger`
+class, we restart the function host before attaching the debugger.  The static
+constructor for the `SampleTrigger` class will be executed the first time we
+make a request to the `api/sample` endpoint.
 
 We will attach the debugger using the `.NET Core Attach` launch configuration in
 VS Code.  We will attach to the `func` process, which represents the process of
 the function host.
 
-After the debugger attached, we make another `curl` request to the `api/sample` endpoint:
+After the debugger attached, we make another `curl` request to the `api/sample`
+endpoint:
 
 ``` sh
 $ curl localhost:7071/api/sample
@@ -145,9 +153,12 @@ In VS Code we should now see that the breakpoint was hit.
 Using either the _Variables_ pane, or the debugger console we can inspect the
 state of the local variables:
 - after inspecting the `yield` variable, we notice that it is set to `0`.
-- after inspecting what keys got loaded to the configuration we notice that the configuration does not contain an entry for `YIELD_SCIENCE`, but an entry for `YEILD_SCIENCE`.
+- after inspecting what keys got loaded to the configuration we notice that the
+  configuration does not contain an entry for `YIELD_SCIENCE`, but an entry for
+  `YEILD_SCIENCE`.
 
-Note that, if you want to list the entries in the `configuration` object from the debugger console, you need to evaluate the following expression:
+Note that, if we want to list the entries in the `configuration` object from
+the debugger console, we need to evaluate the following expression:
 ``` csharp
 ((Microsoft.Extensions.Configuration.EnvironmentVariables.EnvironmentVariablesConfigurationProvider)System.Linq.Enumerable.First(configuration.Providers)).Data.Keys
 ```
@@ -165,12 +176,13 @@ in the `YEILD_SCIENCE` entry:
 }
 ```
 
-## Step 4: Fixing
-Missing critical configuration should correspond to a hard failure, as in most
-cases it is impossible for system to recover, therefore we will update the
-`SampleTrigger` static constructor to raise an exception, when the configuration is missing.
+## Step 4: Writing the Fix
+A case when critical configuration is missing should correspond to a hard
+failure, as in most cases it is impossible for system to recover.  Therefore we
+will update the `SampleTrigger` static constructor to raise an exception when
+the configuration is missing.
 
-The updated constructor is as follows (SampleTrigger.cs:35-45):
+The updated constructor is as follows (`SampleTrigger.cs:35-45`):
 ``` csharp
 // FIX 1: Make lack of configuartion a hard failure
 static SampleTrigger() {
@@ -187,18 +199,19 @@ static SampleTrigger() {
 ```
 
 ## Step 5: Testing the Fix (Red)
-Before updating the configuration we need to make sure that indeed the fix we
-implemented will throw an exception for the current, incorrect configuration.
+Before updating the configuration, we make sure that the fix we implemented will
+throw an exception for the current, incorrect configuration.
 
-We stop the function host, build everything, start the function host again, and
-make another `curl` request to the `/api/sample` endpoint:
+We re-build everything, restart the function host.  If the build command fails
+due to a locked dll file, we need to stop function host before building.  After
+all of that, we make another `curl` request to the `/api/sample` endpoint:
 
 ``` sh
 $ curl localhost:7071/api/sample
 ```
 
-After making the request, we check the function host output to see that indeed
-the static constructor for `SampleTrigger` threw an exception:
+After making the request, we check that the function host output to see that the
+static constructor for `SampleTrigger` threw an exception:
 
 ```
 A ScriptHost error has occurred
@@ -206,11 +219,9 @@ A ScriptHost error has occurred
 ```
 
 ## Step 6: Testing the Fix (Green)
-Now, we can finally update the configuration to check if everything works fine.
+Now, we can update the configuration to check if everything works fine.
 
-We update the configuration in local.settings.json file.  (**Note** that JSON
-files should not contain comments, they were used in this case for demonstration
-purposes only):
+We update the configuration in `local.settings.json file`:  
 ``` json
 {
   "IsEncrypted": false,
@@ -222,8 +233,12 @@ purposes only):
   }
 }
 ```
+(**Note** that JSON
+files should not contain comments, they were used in this case for demonstration
+purposes only)
 
-Again, we stop the function host, build everything, start the function host again, and make another `curl` request.
+Again, we rebuild everything, restart function host, and make another `curl`
+request:
 
 ``` sh
 $ curl localhost:7071/api/sample
@@ -247,21 +262,21 @@ Version:       4.4.3.0
 ```
 
 However, after checking the libraries provided with the Azure Function Runtime,
-we can check that it comes with a different version of `FSharp.Core.dll`.
-(**NOTE** that the path to the runtime is specific to macOS):
+we can see that it comes with a different version of `FSharp.Core.dll`:
 ``` sh
 $ cd /usr/local/Cellar/azure-functions-core-tools/2.0.1-beta.24/
 $ monodis --assembly FSharp.Core.dll | grep Version
 Version:       4.4.1.0
 ```
+(**NOTE** that the path to the runtime is specific to macOS)
 
 After some investigation, it turned out that since the last time anyone worked
-on this code the `FSharp.Core` was updated from `4.4.1.0` to `4.4.3.0`, whereas
-Azure Functions will permit only the version of `FSharp.Core` that comes with
+on this code the `FSharp.Core.dll` was updated from `4.4.1.0` to `4.4.3.0`, whereas
+Azure Functions will permit only the version of `FSharp.Core.dll` that comes with
 the runtime.
 
-Therefore, we need to update the `FSharpLib.fsproj` file to fix `FSharp.Core` to
-version `4.4.1.0`:
+Therefore, we need to update the `FSharpLib.fsproj` file to fix the version of
+`FSharp.Core` package to provide `FSharp.Core.dll` with version `4.4.1.0`:
 
 ``` xml
 <PropertyGroup>
@@ -279,13 +294,16 @@ $ curl localhost:7071/api/sample
 ```
 ``` json
 {
-    "scienceReport":"Our current science yeild is 10",
+    "scienceReport":"Our current science yield is 10",
     "timeStamp":"2018-03-21T15:02:42.695296+00:00"
 }
 ```
 
 ## Further Steps
-In a real-life scenario, after confirming that the fix works now would be time
-to update test cases, documentation, and finally submit everything for code
-review, but all of that is outside the scope of this sample.
+In a real-life scenario, after confirming that the fix works, we would:
+- update test cases, to potentially include the case with missing configuration,
+- update documentation, to potentially include information about newly found
+  problem with `FSharp.Core` being restricted by Azure Functions runtime, and
+- submit everything for code review.
 
+Unfortunately, the above steps are outside of the scope for this code sample.
