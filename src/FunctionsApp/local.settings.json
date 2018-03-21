@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    // "YEILD_SCIENCE": 10
+    // FIX 2: Fix the configuration file
+    "YIELD_SCIENCE": 10
+  }
+}
