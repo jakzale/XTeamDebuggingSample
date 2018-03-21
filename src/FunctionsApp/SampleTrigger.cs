@@ -37,7 +37,8 @@ namespace FunctionsApp {
             
             var configuration = builder.Build();
 
-            var yield = configuration.GetValue<int?>("YIELD_SCIENCE") ?? throw new InvalidOperationException("Missing configuration for YIELD_SCIENCE");
+            var yield = configuration.GetValue<int?>("YIELD_SCIENCE")
+                        ?? throw new InvalidOperationException("Missing configuration for YIELD_SCIENCE");
 
             _science = new Science(yield);
         }
