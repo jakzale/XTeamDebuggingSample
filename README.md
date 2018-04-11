@@ -4,9 +4,9 @@ I was asked to showcase my debugging process using a tricky bug I recently
 encountered and fixed.  One particularly annoying bug that I fixed recently
 involved a typo in a configuration of an Azure Functions application.  Since the
 bug in question occurred in a closed source application, I prepared a contrived
-code sample basing on a similar
-[configuration bug](https://kotaku.com/fans-discover-game-changing-typo-in-civilization-vis-co-1823845314)
-recently discovered in Civilization VI.
+code sample basing on a similar configuration bug
+[recently discovered in Civilization VI](https://kotaku.com/fans-discover-game-changing-typo-in-civilization-vis-co-1823845314)
+.
 
 
 ## Requirements
