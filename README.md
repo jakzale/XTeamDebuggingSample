@@ -13,7 +13,7 @@ recently discovered in Civilization VI.
 
 I wrote and tested this code sample using the following software.  Be advised
 that `azure-functions-core-tools` is being actively developed, so the code
-sample not necessarily work with a different version.
+sample may not necessarily work with a different version.
 
 - `dotnet-sdk`, version used: `2.1.101`
 - `VS Code`, version used: `1.21.1`
